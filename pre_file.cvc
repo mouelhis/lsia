@@ -1,0 +1,37 @@
+DATATYPE
+ SessionStatut =  active | inactive
+END;
+
+DATATYPE
+ PanierStatut =  vide | nonvide
+END;
+
+sess: SessionStatut;
+panier: PanierStatut;
+
+
+
+errmesslg: INT;
+
+
+
+
+
+
+id: INT;
+mdplg: INT;
+
+memid: INT;
+
+idRes: INT;
+
+
+idLoc: INT;
+idMb: INT;
+
+
+
+
+PUSH;
+QUERY ( NOT  ( errmesslg = 0 )  ) => ( NOT  ( errmesslg = 0 )  );
+POP;

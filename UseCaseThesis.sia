@@ -1,0 +1,202 @@
+enum SessionStatut {`active, `inactive}
+enum PanierStatut {`vide, `nonvide}
+
+
+shared sess : SessionStatut by Client, Services ;
+       panier : PanierStatut by Client, Services
+       
+       
+primitive Client {
+    local // pas de variables locales
+
+    states "1", "2", "3", "4", "5"
+    initial "1"
+
+    init sess = `inactive /\ panier = `vide
+
+    input connecte, echec, locValide, locNonValide
+    output login, ajouterAuPanier, validerLoc, deconnexion
+
+    inv true
+
+    transitions 
+     output login "1" -> "2"
+          in: id : int, mdplg : int ; out: memid : int
+          pre id > 0 /\ mdplg <= 10 /\ mdplg >= 8 /\ sess = `inactive 
+          transpred sess = `inactive /\ unchanged sess,panier 
+          post true
+          
+     input echec "2" -> "1"
+          in: errmesslg : int
+          pre errmesslg != 0
+          transpred sess = `inactive /\ unchanged sess,panier
+          post true
+
+     input connecte "2" -> "3"
+          pre sess = `inactive
+          transpred    sess = `inactive
+                    /\ sess' = `active
+                    /\ unchanged panier
+          post sess = `active  
+          
+     output ajouterAuPanier "3" -> "4" "4" -> "4"
+     	  in: idRes : int
+     	  pre idRes != 0 /\ sess = `active
+     	  transpred    sess = `active 
+     	            /\ ( if idRes = 1 /\ panier = `vide then 
+     	                    panier' = `nonvide
+     	                 else 
+     	                    unchanged panier )
+     	            /\ unchanged sess
+     	  post panier = `vide
+     	  
+     output validerLoc "4" -> "5"
+          in: idLoc : int, idMb : int
+          pre idMb != 0 /\ idLoc != 0 /\ panier = `nonvide  
+          transpred    sess = `active
+                    /\ panier = `nonvide
+                    /\ unchanged sess, panier
+          post true
+          
+          
+               
+     input locValide "5" -> "3"
+          pre true
+          transpred    sess = `active
+                    /\ unchanged sess,panier
+          post true
+
+          
+     input locNonValide "5" -> "4"
+          pre true
+          transpred    sess = `active
+                    /\ unchanged sess,panier
+          post true
+
+     
+     output deconnexion "3" -> "1" "4" -> "1"
+          pre sess = `active
+          transpred    sess = `active
+                    /\ sess' = `inactive
+                    /\ unchanged panier
+          post sess = `inactive
+     
+}
+
+
+primitive Services {
+    local tents : int
+
+    states "1", "2", "3", "4", "5", "6", "7", "8", "9"
+    initial "1"
+
+    init sess = `inactive /\ panier = `vide /\ tents = 2 
+
+    
+    input login, ajouterAuPanier, validerLoc, crdInsuff, nvCredit, deconnexion
+    output connecte, echec, locValide, locNonValide, debiter, dureeLocation
+
+    inv true
+
+    transitions 
+     input login "1" -> "2"
+          in: id : int, mdplg : int ; out: memid : int
+          pre id >= 1 /\ mdplg <= 10 /\ mdplg >= 6 /\ sess = `inactive 
+          transpred    sess = `inactive 
+                    /\ if tents >= 0 then
+                            tents' = tents - 1
+                       else 
+                            unchanged tents 
+                    /\ unchanged sess,panier 
+          post true
+          
+     output echec "2" -> "1"
+          in: errmesslg : int
+          pre errmesslg != 0
+          transpred sess = `inactive /\ unchanged sess,panier,tents
+          post true
+
+     output connecte "2" -> "3"
+          pre sess = `inactive
+          transpred    sess = `inactive
+          			/\ tents >= 0 
+          			/\ tents < 2
+                    /\ sess' = `active
+                    /\ unchanged panier,tents
+          post sess = `active  
+          
+     input ajouterAuPanier "3" -> "4" "4" -> "4"
+     	  in: idRes : int
+     	  pre idRes != 0 /\ sess = `active
+     	  transpred    sess = `active 
+     	            /\ ( if panier = `vide then 
+     	                    panier' = `nonvide
+     	                 else 
+     	                    unchanged panier )
+     	            /\ unchanged sess,tents
+     	  post panier = `nonvide
+     	  
+     input validerLoc "4" -> "5"
+          in: idLoc : int, idMb : int
+          pre idMb != 0 /\ idLoc != 0 /\ panier = `nonvide  
+          transpred    sess = `active
+                    /\ panier = `nonvide
+                    /\ unchanged sess, panier, tents
+          post true
+          
+     output locValide "9" -> "3"
+          pre true
+          transpred    sess = `active
+                    /\ panier = `vide
+                    /\ unchanged sess,panier,tents
+          post true
+     
+     output locNonValide "7" -> "4"
+          pre true
+     	  transpred   sess = `active 
+     	           /\ panier = `nonvide
+     	           /\ unchanged sess,panier,tents
+     	  post true
+     	  
+     output debiter "5" -> "6"
+          pre true
+          transpred   sess = `active /\ panier = `nonvide
+                   /\ unchanged sess,panier,tents 
+          post true
+     
+     
+     input crdInsuff "6" -> "7"
+          pre true
+          transpred   sess = `active /\ panier = `nonvide
+                   /\ unchanged sess,panier,tents 
+          post true
+          
+     input nvCredit "6" -> "8"
+          pre true
+          transpred   sess = `active /\ panier = `nonvide
+                   /\ unchanged sess,panier,tents 
+          post true
+     
+     output dureeLocation "8" -> "9"
+          in: debut : int, fin : int
+          pre panier = `nonvide /\ debut < fin
+          transpred   sess = `active
+                   /\ panier = `nonvide
+                   /\ panier' = `vide
+                   /\ unchanged sess,tents
+          post panier = `nonvide /\ debut < fin
+          
+     input deconnexion "3" -> "1" "4" -> "1"
+          pre sess = `active
+          transpred    sess = `active
+                    /\ sess' = `inactive
+                    /\ tents' = 2
+                    /\ unchanged panier
+          post sess = `inactive
+     
+}
+
+composite Usecase {
+
+		Client || Services
+}

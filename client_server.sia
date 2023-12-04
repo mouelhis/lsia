@@ -1,0 +1,116 @@
+enum session_state {`active, `inactive}
+enum string {`a_string, `a_stringg}
+
+shared cc_att : int by Client, Server ;
+       c_sess : session_state by Client, Server
+
+       
+primitive Client {
+	local state : state*
+	
+	states "1", "2", "3", "4", "5"
+	
+	init state = "1" /\ c_sess = `inactive 
+	
+	
+	input connected, error, exit
+	output login, open, close
+	
+	inv true
+ 	
+	transitions
+		input connected "2" -> "3"
+		      preshared c_sess = `inactive
+		      effect true
+     		  postshared c_sess = `active     		  
+        input error "2" -> "1"
+          	  preshared c_sess = `inactive
+     		  postshared true
+    
+		input exit "5" -> "1"
+          	  preshared c_sess = `active
+     		  postshared c_sess = `inactive
+     		  
+    	output login "1" -> "2" 
+    		  in: uname : string , passwd : string ,lengthu : int , lengthp : int ; out: exists : bool 
+    		  preshared c_sess = `inactive /\ cc_att > 0 
+    		  preparam lengthu = lengthp * 3
+      		  effect cc_att = if cc_att > 1 then cc_att - 1 else cc_att 
+     		  postparam exists = true \/ exists = false
+     		  postshared true
+		output open "3" -> "4" 
+			  in: filename : string , read : 0..1 ; out: op : bool 
+              preshared c_sess = `active 
+              preparam read = 1 \/ read = 0 
+      		  effect true  
+     		  postparam op = true \/ op = false
+     		  postshared true
+     		   
+     	output close "4" -> "5" 
+    		  out: cl : bool 
+    		  preshared c_sess = `active
+    		  preparam true  
+      		  effect true  
+      		  postparam cl = true \/ cl = false
+      		  postshared true
+}
+
+primitive Server {
+	local state : state*
+	
+	states "a", "b", "c", "d", "e", "f", "g", "h"
+	
+	init state = "a" /\ c_sess = `inactive /\ cc_att = 2
+	
+	input login, open, close 
+	output connected, error, exit
+	
+	inv c_sess = "active" ==> cc_att <= 1
+	
+	transitions
+		output connected "b" -> "e" "d" -> "e"
+		      preshared c_sess = `inactive /\ cc_att > 0
+      		  effect c_sess = `active 
+     		  postshared c_sess = `active
+     		  
+        output error "b" -> "c" "d" -> "h"
+          	  preshared c_sess = `inactive
+      		  effect true 
+     		  postshared true
+     		  
+		output exit "g" -> "a"
+          	  preshared c_sess = `active
+      		  effect c_sess = `inactive
+     		  postshared c_sess = `inactive
+     		  
+    	input login "a" -> "b" "c" -> "d" "h" -> "h" 
+    		  in: uname : string , passwd : string ,lengthu : int , lengthp : int ; out: exists : bool 
+    		  preshared c_sess = `inactive /\ cc_att > 0 
+			  preparam 4 < lengthu /\ lengthu <= 15 /\ 6 <= lengthp /\ lengthp <= 10
+			  postparam true
+      		  postshared cc_att > 0 
+      		  
+     		  
+		input open "e" -> "f" 
+			  in: filename : string , read : 0..1 ; out: op : bool 
+              preshared c_sess = `active
+              preparam read = 1
+              preparam true
+     		  postshared true
+     		   
+     	input close "f" -> "g" 
+    		  out: cl : bool 
+    		  preshared c_sess = `active
+    		  preparam true
+    		  postparam true  
+     		  postshared true
+}
+
+
+
+composite WholeSystem {
+
+		Client || Server
+}
+
+
