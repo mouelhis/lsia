@@ -4,4 +4,4 @@ The **lSIA tool**, built upon the Language for describing and checking **Semanti
 
 ![Local Image](./diagramme_lsia.png)
 
-[Ref] Mouelhi, Sebti. Contributions à la Vérification de la Sûreté de l'Assemblage et à l'Adaptation de Composants Réutilisables. Université de Franche-Comté, 2011 (French manuscript).
+[Ref] Mouelhi, Sebti. Contributions à la Vérification de la Sûreté de l'Assemblage et à l'Adaptation de Composants Réutilisables. *Ph.D. Thesis*, Université de Franche-Comté, 2011 (French manuscript).
